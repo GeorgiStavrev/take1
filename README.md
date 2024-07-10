@@ -9,8 +9,12 @@ A simple implementation of an analytics service with Python (Django) and Kafka, 
   - python-kafka
 - Kafka - used to stream events from the Backend application to Consumer(s)
 - Consumer - processes tracking payloads and writes to DB
+  - Python
+  - SQLAlchemy
+  - python-kafka
 - Postgres - used to store events, event and user properties as well as django admin data
 - Frontend - example front-end application. Contains `tracker.js` which is a simple implementation of a tracking client library
+  - React
 
 # Running
 ```bash
