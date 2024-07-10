@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Django",
+            "name": "Start Backend",
             "type": "debugpy",
             "request": "launch",
             "args": [
@@ -13,10 +13,20 @@
             ],
             "django": true,
             "autoStartBrowser": false,
-            "program": "${workspaceFolder}/backend/manage.py"
+            "program": "${workspaceFolder}/backend/manage.py",
+            "env": { 
+                    "KAFKA_HOST": "localhost",
+                    "KAFKA_PORT": "9092",
+                    "KAFKA_TOPIC": "test",
+                    "DB_HOST": "localhost",
+                    "DB_PORT": "5432",
+                    "DB_USER": "postgres",
+                    "DB_PASSWORD": "postgres",
+                    "DB_NAME": "tracking"
+            },
         },
         {
-            "name": "Python: Consumer",
+            "name": "Start Consumer",
             "type": "debugpy",
             "request": "launch",
             "module": "consumer",

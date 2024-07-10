@@ -1,18 +1,18 @@
 from typing import List
 from sqlalchemy import ForeignKey
 from sqlalchemy import String, DateTime
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.ext.declarative import as_declarative
+from sqlalchemy import inspect
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql import func
 
-from db import engine
 
-
-class Base(DeclarativeBase):
-    pass
+@as_declarative()
+class Base:
+    def _asdict(self):
+        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
 
 
 class Event(Base):

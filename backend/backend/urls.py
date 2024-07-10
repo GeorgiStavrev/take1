@@ -17,11 +17,13 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
-from backend.views import test, track
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from backend.views import track, query
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/v1/test/", test.get),
-    path("api/v1/track", track.track_event)
-    
+    path("api/token", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/v1/track", track.track_event),
+    path("api/v1/query/events", query.query_events),
 ]
