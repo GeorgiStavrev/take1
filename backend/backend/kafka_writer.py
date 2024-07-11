@@ -7,13 +7,20 @@ from backend.serialization import json_serial
 host = KAFKA.get("HOST")
 port = KAFKA.get("PORT")
 topic = KAFKA.get("TOPIC")
-producer = KafkaProducer(bootstrap_servers=f"{host}:{port}", api_version=(0, 10))
 
 logger = logging.getLogger(__name__)
 
+def init_producer():
+    return KafkaProducer(bootstrap_servers=f"{host}:{port}", api_version=(0, 10))
+
+global producer
+producer = None
 
 def stream_event(event: dict):
-    logger.info("streaming event to kafka")
+    global producer
+    if producer is None:
+        producer = init_producer()
+
     producer.send(
         topic,
         # key=event["client_id"].encode("utf-8"),
@@ -36,6 +43,3 @@ def create_topic():
         admin_client.create_topics(new_topics=topic_list, validate_only=False)
     else:
         logger.info("Kafka topic already exists.")
-
-
-create_topic()

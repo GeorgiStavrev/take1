@@ -33,13 +33,19 @@ class Queue {
         this.storage = new QueueStorage(this.name)
         this.storage.load(this)
     }
-    enqueue(item) {
+    pushRight(item) {
         this.items[this.backIndex] = item
         this.backIndex++
         this.storage.store(this)
-        return item + ' inserted'
+        return item + ' inserted at the tail'
     }
-    dequeue() {
+    pushLeft(item) {
+        this.frontIndex--
+        this.items[this.frontIndex] = item
+        this.storage.store(this)
+        return item + ' inserted at the head'
+    }
+    popLeft() {
         const item = this.items[this.frontIndex]
         delete this.items[this.frontIndex]
         this.frontIndex++
@@ -87,7 +93,7 @@ async function postEvents(tracker, events) {
 async function flush(tracker, timeout) {
     var toFlush = [];
     while (toFlush.length < 100 && tracker.events.size() > 0) {
-        const event = tracker.events.dequeue()
+        const event = tracker.events.popLeft()
         if (event != null) {
             toFlush.push(event)
         }        
@@ -95,9 +101,18 @@ async function flush(tracker, timeout) {
     if (tracker.tokenExpiration < new Date()) {
         await tracker.refresh()
     }
-    await postEvents(tracker, toFlush);
-    if (toFlush.length > 0 && tracker.verbose) {
-        console.log(`Flushing ${toFlush.length} events. Timeout is ${timeout}`);
+    try {
+        if (toFlush.length > 0 && tracker.verbose) {
+            console.log(`Flushing ${toFlush.length} events. Timeout is ${timeout}`);
+        }
+        await postEvents(tracker, toFlush);
+    } catch (error) {
+        for (var i = toFlush.length - 1; i >= 0; i--) {
+            tracker.events.pushLeft(toFlush[i])
+        }
+        if (toFlush.length > 0 && tracker.verbose) {
+            console.log(`Flush failed.`);
+        }
     }
     setTimeout(async () => { await flush(tracker, timeout) }, timeout);
 }
@@ -140,6 +155,8 @@ function parseJwt (token) {
 }
 
 const DEFAULT_TIMEOUT_VALUE = 1000
+const MAX_INIT_ATTEMPTS = 3
+const MAX_REFRESH_ATTEMPTS = 3
 class Tracker {
     constructor(timeout=DEFAULT_TIMEOUT_VALUE) {
         this.events = new Queue("take1Tracker");
@@ -152,17 +169,35 @@ class Tracker {
         }
         console.log(`Create Tracker. Timeout is ${timeout}`)
     }
-    async init(clientId, apiKey) {
-        var response = await authenticate(clientId, apiKey)
-        this.accessToken = response.access
-        this.refreshToken = response.refresh
-        this.tokenExpiration = new Date(1000 * parseJwt(this.accessToken)["exp"])
+    async init(clientId, apiKey, attempt) {
+        try {
+            if (attempt === undefined || attempt == null) {
+                attempt = 0
+            }
+            var response = await authenticate(clientId, apiKey)
+            this.accessToken = response.access
+            this.refreshToken = response.refresh
+            this.tokenExpiration = new Date(1000 * parseJwt(this.accessToken)["exp"])
+        } catch(err) {
+            if (attempt < MAX_INIT_ATTEMPTS) {
+                setTimeout(() => this.init(clientId, apiKey, attempt+1), 3000);
+            }
+        }
     }
-    async refresh() {
-        var response = await refreshAuth(this.refreshToken);
-        this.accessToken = response.access
-        this.refreshToken = response.refresh
-        this.tokenExpiration = new Date(1000 * parseJwt(this.accessToken)["exp"])
+    async refresh(attempt) {
+        try {
+            if (attempt === undefined || attempt == null) {
+                attempt = 0
+            }
+            var response = await refreshAuth(this.refreshToken);
+            this.accessToken = response.access
+            this.refreshToken = response.refresh
+            this.tokenExpiration = new Date(1000 * parseJwt(this.accessToken)["exp"])
+        } catch(err) {
+            if (attempt < MAX_REFRESH_ATTEMPTS) {
+                setTimeout(() => this.refresh(attempt+1), 3000);
+            }
+        }
     }
     identify(userId) {
         this.userId = userId;
@@ -189,7 +224,7 @@ class Tracker {
             });
 
         });
-        this.events.enqueue({
+        this.events.pushRight({
             event: event,
             created_at: (new Date()).toISOString(),
             properties: propArray

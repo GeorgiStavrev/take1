@@ -1,2 +1,4 @@
 black==24.4.2
 pytest==8.2.2
+django-webtest==1.9.11
+pytest-django==4.8.0
