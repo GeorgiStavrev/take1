@@ -53,7 +53,15 @@ def processMessage(message: dict):
             for property in data.get("properties", []):
                 name = property["name"]
                 value = property["value"]
-                stmt = select(UserProperty).where(UserProperty.client_id == client_id, UserProperty.user_id == user_id, UserProperty.name == name).distinct()
+                stmt = (
+                    select(UserProperty)
+                    .where(
+                        UserProperty.client_id == client_id,
+                        UserProperty.user_id == user_id,
+                        UserProperty.name == name,
+                    )
+                    .distinct()
+                )
                 record = session.execute(statement=stmt).first()
                 if record is None:
                     property_record = UserProperty(

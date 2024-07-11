@@ -17,9 +17,15 @@ A simple implementation of an analytics service with Python (Django) and Kafka, 
   - React
 
 # Running
+1. Start the stack
 ```bash
 docker-compose up
 ```
+2. Create a new user in the django backend
+```base
+cd backend && python manage.py createsuperuser
+```
+3. Set the credentials in the frontend `frontend/index.js` file line 20
 
 # Developing
 I suggest commenting out the `backend`, `consumer`, `frontend` components from the `docker.compose.yaml` then:

@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql import func
 
+
 class Base(DeclarativeBase):
     pass
 
@@ -46,7 +47,9 @@ class EventProperty(Base):
 
 class UserProperty(Base):
     __tablename__ = "user_properties"
-    __table_args__ = (UniqueConstraint("client_id", "user_id", "name", name="uc__user_prop"),)
+    __table_args__ = (
+        UniqueConstraint("client_id", "user_id", "name", name="uc__user_prop"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     client_id: Mapped[str] = mapped_column(String(80))
     user_id: Mapped[str] = mapped_column(String(80))
