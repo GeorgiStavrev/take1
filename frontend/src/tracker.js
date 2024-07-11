@@ -45,12 +45,27 @@ class Queue {
         this.storage.store(this)
         return item + ' inserted at the head'
     }
+    pushLeftMany(items) {
+        for (var i = 0; i < items.length; i++) {
+            this.pushLeft(items[i])
+        }
+    }
     popLeft() {
         const item = this.items[this.frontIndex]
         delete this.items[this.frontIndex]
         this.frontIndex++
         this.storage.store(this)
         return item
+    }
+    popLeftMany(count) {
+        var result = []
+        while (result.length < 100 && this.size() > 0) {
+            const item = this.popLeft()
+            if (item != null) {
+                result.push(item)
+            }        
+        }
+        return result
     }
     peek() {
         return this.items[this.frontIndex]
@@ -75,13 +90,13 @@ function makeid(length) {
     return result;
 }
         
-async function postEvents(tracker, events) {
+async function postEvents(tracker, events, properties) {
     await fetch("http://localhost:8000/api/v1/track", {
         method: "POST",
         body: JSON.stringify({
             user_id: tracker.userId,
             events: events,
-            properties: []
+            properties: properties
         }),
         headers: {
           "Content-type": "application/json; charset=UTF-8",
@@ -91,26 +106,25 @@ async function postEvents(tracker, events) {
 }
         
 async function flush(tracker, timeout) {
-    var toFlush = [];
-    while (toFlush.length < 100 && tracker.events.size() > 0) {
-        const event = tracker.events.popLeft()
-        if (event != null) {
-            toFlush.push(event)
-        }        
-    }
+    var eventsToFlush = tracker.events.popLeftMany(100);
+    var propertiesToFlush = tracker.properties.popLeftMany(100);
     if (tracker.tokenExpiration < new Date()) {
         await tracker.refresh()
     }
+    if (eventsToFlush.length == 0 && propertiesToFlush.length == 0) {
+        setTimeout(async () => { await flush(tracker, timeout) }, timeout);
+        return
+    }
+    
     try {
-        if (toFlush.length > 0 && tracker.verbose) {
-            console.log(`Flushing ${toFlush.length} events. Timeout is ${timeout}`);
+        if (eventsToFlush.length > 0 && tracker.verbose) {
+            console.log(`Flushing ${eventsToFlush.length} events and ${propertiesToFlush.length} properties. Timeout is ${timeout}`);
         }
-        await postEvents(tracker, toFlush);
+        await postEvents(tracker, eventsToFlush, propertiesToFlush);
     } catch (error) {
-        for (var i = toFlush.length - 1; i >= 0; i--) {
-            tracker.events.pushLeft(toFlush[i])
-        }
-        if (toFlush.length > 0 && tracker.verbose) {
+        tracker.events.pushLeftMany(eventsToFlush.reverse());
+        tracker.events.pushLeftMany(propertiesToFlush.reverse());
+        if (eventsToFlush.length > 0 && tracker.verbose) {
             console.log(`Flush failed.`);
         }
     }
@@ -159,15 +173,14 @@ const MAX_INIT_ATTEMPTS = 3
 const MAX_REFRESH_ATTEMPTS = 3
 class Tracker {
     constructor(timeout=DEFAULT_TIMEOUT_VALUE) {
-        this.events = new Queue("take1Tracker");
-        this.properties = [];
+        this.events = new Queue("take1Events");
+        this.properties = new Queue("take1Properties");
         this.userId = `anon${makeid(10)}`;
         this.verbose = false;
         this.timeout = timeout
         if (timeout === undefined) {
             timeout = DEFAULT_TIMEOUT_VALUE
         }
-        console.log(`Create Tracker. Timeout is ${timeout}`)
     }
     async init(clientId, apiKey, attempt) {
         try {
@@ -228,6 +241,12 @@ class Tracker {
             event: event,
             created_at: (new Date()).toISOString(),
             properties: propArray
+        })
+    }
+    setProperty(name, value) {
+        this.properties.pushRight({
+            "name": name,
+            "value": value
         })
     }
 }

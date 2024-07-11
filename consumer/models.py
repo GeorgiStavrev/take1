@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy import ForeignKey
-from sqlalchemy import String, DateTime
+from sqlalchemy import String, DateTime, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -8,15 +8,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql import func
 
-from db import engine
-
-
 class Base(DeclarativeBase):
     pass
 
 
 class Event(Base):
     __tablename__ = "user_events"
+    __table_args__ = None
     id: Mapped[int] = mapped_column(primary_key=True)
     client_id: Mapped[str] = mapped_column(String(80))
     user_id: Mapped[str] = mapped_column(String(80))
@@ -33,6 +31,7 @@ class Event(Base):
 
 class EventProperty(Base):
     __tablename__ = "user_event_properties"
+    __table_args__ = None
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(20))
     value: Mapped[str] = mapped_column(String(80))
@@ -47,6 +46,7 @@ class EventProperty(Base):
 
 class UserProperty(Base):
     __tablename__ = "user_properties"
+    __table_args__ = (UniqueConstraint("client_id", "user_id", "name", name="uc__user_prop"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     client_id: Mapped[str] = mapped_column(String(80))
     user_id: Mapped[str] = mapped_column(String(80))

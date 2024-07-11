@@ -14,4 +14,3 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 RUN apk --purge del .build-deps
 COPY . /app/consumer/
-# CMD [ "python", "-m", "init_db", "&", "python", "-m", "consumer"]

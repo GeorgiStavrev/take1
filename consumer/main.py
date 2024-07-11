@@ -3,6 +3,7 @@ import json
 import os
 from models import Event, EventProperty, UserProperty
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from db import engine
 import logging
 
@@ -50,13 +51,21 @@ def processMessage(message: dict):
                     )
                     session.add(event_prop_record)
             for property in data.get("properties", []):
-                property_record = UserProperty(
-                    client_id=client_id,
-                    user_id=user_id,
-                    name=property["name"],
-                    value=property["value"],
-                )
-                session.add(property_record)
+                name = property["name"]
+                value = property["value"]
+                stmt = select(UserProperty).where(UserProperty.client_id == client_id, UserProperty.user_id == user_id, UserProperty.name == name).distinct()
+                record = session.execute(statement=stmt).first()
+                if record is None:
+                    property_record = UserProperty(
+                        client_id=client_id,
+                        user_id=user_id,
+                        name=name,
+                        value=value,
+                    )
+                    session.add(property_record)
+                else:
+                    user_prop = record[0]
+                    user_prop.value = value
             session.commit()
     except Exception as ex:
         print(f"Failed to process message: {str(ex)}. Payload {str(message)}")

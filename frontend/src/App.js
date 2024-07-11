@@ -19,6 +19,7 @@ function App() {
       properties.push({'type': tag});
       properties.push({'id': id});
       window.tracker.track("click", properties)
+      window.tracker.setProperty('email', (new Date()).toISOString())
     }
   }
 
